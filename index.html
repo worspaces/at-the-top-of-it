@@ -101,7 +101,21 @@
 <body>
   <h1 class="surprise-text">Craz the Top!</h1>
 
-  <p class="motw-text">Quote Of The Day | QOTD: <span style="color: #427B2C; font-weight: normal;">"no you monkey" - WidgetBot user</span></p>
+  <p class="motw-text" id="motd">Quote Of The Day | QOTD: <span style="color: #427B2C; font-weight: normal;">Loading...</span></p>
+
+<script>
+  fetch('https://cdn.jsdelivr.net/gh/worspaces/at-the-top-of-it/qotd.json')
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById("motd").innerHTML = 
+        `Quote Of The Day | QOTD: <span style="color: #427B2C; font-weight: normal;">"${data.quote}" - ${data.author}</span>`;
+    })
+    .catch(error => {
+      console.error("Failed to load QOTD:", error);
+      document.getElementById("motd").innerHTML = 
+        `Quote Of The Day | QOTD: <span style="color: #427B2C; font-weight: normal;">Failed to load.</span>`;
+    });
+</script>
 
   <p class="tiny-text">something was here but was removed</p>
 
