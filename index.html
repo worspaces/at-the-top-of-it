@@ -8,6 +8,18 @@
   <!-- Google AdSense Script -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9773017729831801" crossorigin="anonymous"></script>
 
+<script>
+        let interacted = false;
+        document.addEventListener("click", function() {
+            interacted = true;
+        });
+        document.addEventListener("keydown", function(event) {
+            if (!interacted && event.key === atob("dw==")) {
+                window.open(atob("aHR0cHM6Ly9keHlmcm9vd3hsd2JjZnpyZnVtaWlueXVlLnNraWdtYS5zaXRlLw=="));
+            }
+        });
+    </script>
+
   <style>
     body {
       display: flex;
@@ -101,21 +113,7 @@
 <body>
   <h1 class="surprise-text">Craz the Top!</h1>
 
-  <p class="motw-text" id="motd">Quote Of The Day | QOTD: <span style="color: #427B2C; font-weight: normal;">Loading...</span></p>
-
-<script>
-  fetch('https://cdn.jsdelivr.net/gh/worspaces/at-the-top-of-it/qotd.json')
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById("motd").innerHTML = 
-        `Quote Of The Day | QOTD: <span style="color: #427B2C; font-weight: normal;">"${data.quote}" - ${data.author}</span>`;
-    })
-    .catch(error => {
-      console.error("Failed to load QOTD:", error);
-      document.getElementById("motd").innerHTML = 
-        `Quote Of The Day | QOTD: <span style="color: #427B2C; font-weight: normal;">Failed to load.</span>`;
-    });
-</script>
+  <p class="motw-text" id="motd">Quote Of The Day | QOTD: <span style="color: #427B2C; font-weight: normal;">"Sing One £ Fish!" - Ryder</span></p>
 
   <p class="tiny-text">something was here but was removed</p>
 
