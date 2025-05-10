@@ -1,3 +1,3 @@
-All domains (that will expire in a year) will get transfered to *.craz.top to keep them up, this is because the only domain that will last longer is https://craz.top/
+All websites except for craz.top that are set to expire within a year will be transferred to *.craz.top to keep them active. This is because the only website that will remain valid beyond that period is https://craz.top.
 
-This will take affect on 6/10/25
+This change will take effect on 6/10/25.
