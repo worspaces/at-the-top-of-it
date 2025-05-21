@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hyperbeam Session</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: black;
+      overflow: hidden;
+    }
+    #hyperbeam-container {
+      width: 100vw;
+      height: 100vh;
+    }
+    #stop-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      padding: 8px 14px;
+      font-size: 14px;
+      background: #e33;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      z-index: 1000;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <button id="stop-btn" disabled>Stop Session</button>
+  <div id="hyperbeam-container"></div>
+
+  <script type="module">
+    import Hyperbeam from "https://cdn.jsdelivr.net/npm/@hyperbeam/web@0.0.37/dist/index.js";
+
+    const WORKER_URL = "https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev/";
+    let sessionId = null;
+    let hbClient = null;
+
+    async function startSession() {
+      const res = await fetch(WORKER_URL, { method: "POST" });
+      const data = await res.json();
+      sessionId = data.session_id;
+      const container = document.getElementById("hyperbeam-container");
+      hbClient = await Hyperbeam(container, data.embed_url);
+      document.getElementById("stop-btn").disabled = false;
+    }
+
+    async function stopSession() {
+      if (!sessionId) return;
+
+      const res = await fetch(WORKER_URL, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        hbClient?.disconnect?.();
+        document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:20%'>Session stopped.</h1>";
+      } else {
+        alert("Failed to stop session: " + result.error);
+      }
+    }
+
+    document.getElementById("stop-btn").addEventListener("click", stopSession);
+
+    startSession().catch(err => {
+      console.error(err);
+      document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:20%'>Failed to start session</h1>";
+    });
+  </script>
+</body>
+</html>
