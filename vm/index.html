@@ -4,85 +4,57 @@
   <meta charset="UTF-8" />
   <title>Hyperbeam VM Embed</title>
   <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #eee;
-      display: flex;
-      flex-direction: column;
-    }
-    #hyperbeam-container {
-      flex: 1;
-      width: 100%;
-      border: none;
-    }
-    #controls {
-      background: #222;
-      padding: 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    button {
-      padding: 8px 16px;
-      background: #ff3b3b;
-      border: none;
-      border-radius: 4px;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #ff1a1a;
-    }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    #hyperbeam-container { width: 100vw; height: 100vh; }
+    #stop-btn { position: fixed; top: 16px; left: 16px; z-index:1000; padding:8px 12px; background: rgba(217,83,79,0.9); color:#fff; border:none; border-radius:4px; cursor:pointer; }
+    #hyperbeam-container:-webkit-full-screen #stop-btn, #hyperbeam-container:fullscreen #stop-btn { display:none; }
   </style>
 </head>
 <body>
-  <div id="controls">
+  <div id="hyperbeam-container">
     <button id="stop-btn" disabled>Stop Session</button>
   </div>
-  <iframe id="hyperbeam-container" allow="camera; microphone; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 
   <script type="module">
-    import Hyperbeam from "https://cdn.jsdelivr.net/npm/@hyperbeam/web@latest/dist/index.js";
+    const WORKER_URL = 'https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev';
+    const container = document.getElementById('hyperbeam-container');
+    const stopBtn = document.getElementById('stop-btn');
+    let sessionId = null;
 
-    let vmInstance = null;
-    const iframe = document.getElementById("hyperbeam-container");
-    const stopBtn = document.getElementById("stop-btn");
-
-    async function startVM() {
+    async function start() {
       try {
-        const res = await fetch("https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev/", { method: "POST" });
-        const data = await res.json();
-
-        if (!data.embed_url) {
-          throw new Error("No embed_url in response");
-        }
-
-        vmInstance = await Hyperbeam(iframe, data.embed_url);
+        const res = await fetch(WORKER_URL + '/', { method: 'POST', mode: 'cors' });
+        const { embed_url, session_id } = await res.json();
+        sessionId = session_id;
+        const iframe = document.createElement('iframe');
+        iframe.src = embed_url;
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.allow = 'camera; microphone; fullscreen; autoplay';
+        container.appendChild(iframe);
         stopBtn.disabled = false;
       } catch (err) {
-        console.error("Failed to start VM:", err);
-        alert("Failed to start VM: " + err.message);
+        console.error('Start session error:', err);
+        alert('Failed to start session: ' + err.message);
       }
     }
 
-    stopBtn.addEventListener("click", async () => {
-      if (vmInstance) {
-        try {
-          await vmInstance.stop(); // This calls your worker /stop endpoint
-          stopBtn.disabled = true;
-          iframe.src = "about:blank"; // Clear iframe
-          vmInstance = null;
-          alert("Session stopped.");
-        } catch (err) {
-          console.error("Failed to stop VM:", err);
-          alert("Failed to stop VM: " + err.message);
+    stopBtn.addEventListener('click', async () => {
+      if (!sessionId) return;
+      try {
+        const res = await fetch(WORKER_URL + '/stop', { method: 'DELETE', mode: 'cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) });
+        const { success, error } = await res.json();
+        if (success) {
+          location.reload();
+        } else {
+          alert('Stop error: ' + error);
         }
+      } catch (err) {
+        console.error('Stop session error:', err);
       }
     });
 
-    startVM();
+    start();
   </script>
 </body>
 </html>
