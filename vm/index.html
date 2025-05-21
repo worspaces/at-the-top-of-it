@@ -16,45 +16,66 @@
   </div>
 
   <script type="module">
-    const WORKER_URL = 'https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev';
-    const container = document.getElementById('hyperbeam-container');
-    const stopBtn = document.getElementById('stop-btn');
-    let sessionId = null;
+  const WORKER_URL = 'https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev';
+  const container = document.getElementById('hyperbeam-container');
+  const stopBtn   = document.getElementById('stop-btn');
+  let sessionId   = null;
 
-    async function start() {
-      try {
-        const res = await fetch(WORKER_URL + '/', { method: 'POST', mode: 'cors' });
-        const { embed_url, session_id } = await res.json();
-        sessionId = session_id;
-        const iframe = document.createElement('iframe');
-        iframe.src = embed_url;
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
-        iframe.allow = 'camera; microphone; fullscreen; autoplay';
-        container.appendChild(iframe);
-        stopBtn.disabled = false;
-      } catch (err) {
-        console.error('Start session error:', err);
-        alert('Failed to start session: ' + err.message);
+  async function start() {
+    try {
+      const res = await fetch(WORKER_URL + '/', {
+        method: 'POST',
+        mode:   'cors'
+      });
+
+      // <-- NEW: check for non-2xx before parsing JSON
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
       }
+
+      const { embed_url, session_id } = await res.json();
+      sessionId = session_id;
+
+      const iframe = document.createElement('iframe');
+      iframe.src    = embed_url;
+      iframe.style.width  = '100%';
+      iframe.style.height = '100%';
+      iframe.allow = 'camera; microphone; fullscreen; autoplay';
+      container.appendChild(iframe);
+
+      stopBtn.disabled = false;
+    } catch (err) {
+      console.error('Start session error:', err);
+      alert('Failed to start session:\n' + err.message);
     }
+  }
 
-    stopBtn.addEventListener('click', async () => {
-      if (!sessionId) return;
-      try {
-        const res = await fetch(WORKER_URL + '/stop', { method: 'DELETE', mode: 'cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) });
-        const { success, error } = await res.json();
-        if (success) {
-          location.reload();
-        } else {
-          alert('Stop error: ' + error);
-        }
-      } catch (err) {
-        console.error('Stop session error:', err);
+  stopBtn.addEventListener('click', async () => {
+    if (!sessionId) return;
+    try {
+      const res = await fetch(WORKER_URL + '/stop', {
+        method: 'DELETE',
+        mode:   'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
       }
-    });
 
-    start();
-  </script>
+      const { success, error } = await res.json();
+      if (!success) throw new Error(error || 'Unknown error');
+      location.reload();
+    } catch (err) {
+      console.error('Stop session error:', err);
+      alert('Failed to stop session:\n' + err.message);
+    }
+  });
+
+  start();
+</script>
 </body>
 </html>
