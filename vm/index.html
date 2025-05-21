@@ -2,17 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Hyperbeam VM Embed</title>
+  <title>Chromium</title>
   <style>
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
     #hyperbeam-container { width: 100vw; height: 100vh; }
     #stop-btn {
-      position: fixed; top: 16px; left: 16px; z-index: 1000;
-      padding: 8px 12px; background: rgba(217, 83, 79, 0.9);
-      color: #fff; border: none; border-radius: 4px; cursor: pointer;
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      padding: 8px 12px;
+      background: rgba(217,83,79,0.9);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
     #hyperbeam-container:-webkit-full-screen #stop-btn,
-    #hyperbeam-container:fullscreen #stop-btn { display: none; }
+    #hyperbeam-container:fullscreen #stop-btn {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -21,47 +30,50 @@
   </div>
 
   <script type="module">
-    const WORKER_URL = 'https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev';
+    // Your frontend URL, which points to the worker URL
+    const WORKER_URL = 'https://craz.top/vm/';
+
     const container = document.getElementById('hyperbeam-container');
     const stopBtn = document.getElementById('stop-btn');
     let sessionId = null;
 
     async function start() {
       try {
-        const res = await fetch(WORKER_URL + '/', { method: 'POST', mode: 'cors' });  // <== HERE, use '/'
-        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-
-        const data = await res.json();
-        sessionId = data.session_id;
+        // POST to /vm/ to create a session
+        const res = await fetch(WORKER_URL, { method: 'POST', mode: 'cors' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { embed_url, session_id } = await res.json();
+        sessionId = session_id;
 
         const iframe = document.createElement('iframe');
-        iframe.src = data.embed_url;
+        iframe.src = embed_url;
         iframe.style.width = '100%';
         iframe.style.height = '100%';
         iframe.allow = 'camera; microphone; fullscreen; autoplay';
         container.appendChild(iframe);
+
         stopBtn.disabled = false;
       } catch (err) {
         alert('Failed to start session: ' + err.message);
-        console.error(err);
+        console.error('Start session error:', err);
       }
     }
 
     stopBtn.addEventListener('click', async () => {
       if (!sessionId) return;
       try {
-        const res = await fetch(WORKER_URL + '/stop', {
+        // DELETE to /stop/ to end the session
+        const res = await fetch(WORKER_URL + 'stop/', {
           method: 'DELETE',
           mode: 'cors',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId })
+          body: JSON.stringify({ session_id: sessionId }),
         });
-        const data = await res.json();
-
-        if (data.success) {
+        const { success, error } = await res.json();
+        if (success) {
           location.reload();
         } else {
-          alert('Stop error: ' + data.error);
+          alert('Stop error: ' + error);
         }
       } catch (err) {
         console.error('Stop session error:', err);
