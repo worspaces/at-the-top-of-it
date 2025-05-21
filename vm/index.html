@@ -1,78 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Hyperbeam VM</title>
+  <meta charset="UTF-8" />
+  <title>Chromium VM</title>
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; }
-    #hyperbeam-container { width: 100vw; height: 100vh; }
-    #controls { position: absolute; top: 16px; left: 16px; z-index: 1000; }
-    #controls button {
-      margin-right: 8px;
+    html, body {
+      margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    #hyperbeam-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    #stop-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
       padding: 8px 12px;
-      font-size: 14px;
-      background: #d9534f;
+      background: rgba(217, 83, 79, 0.9);
       color: #fff;
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      font-size: 16px;
+    }
+    #hyperbeam-container:-webkit-full-screen #stop-btn,
+    #hyperbeam-container:fullscreen #stop-btn {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <div id="controls">
-    <button id="start-btn">Start Session</button>
+  <div id="hyperbeam-container">
     <button id="stop-btn" disabled>Stop Session</button>
   </div>
-  <div id="hyperbeam-container"></div>
 
   <script type="module">
-    const WORKER = 'https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev';
-    const startBtn = document.getElementById('start-btn');
-    const stopBtn  = document.getElementById('stop-btn');
+    const WORKER_URL = 'https://craz.top/vm'; // Important: no trailing slash here
     const container = document.getElementById('hyperbeam-container');
-    let sessionId, iframe;
+    const stopBtn = document.getElementById('stop-btn');
+    let sessionId = null;
 
-    async function startSession() {
-      startBtn.disabled = true;
+    async function start() {
       try {
-        const res = await fetch(WORKER + '/', { method: 'POST' });
+        const res = await fetch(WORKER_URL + '/', {
+          method: 'POST',
+          mode: 'cors',
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const { embed_url, session_id } = await res.json();
         sessionId = session_id;
 
-        iframe = document.createElement('iframe');
-        iframe.src    = embed_url;
-        iframe.style.width  = '100%';
+        const iframe = document.createElement('iframe');
+        iframe.src = embed_url;
+        iframe.style.width = '100%';
         iframe.style.height = '100%';
         iframe.allow = 'camera; microphone; fullscreen; autoplay';
+        iframe.setAttribute('frameborder', '0');
         container.appendChild(iframe);
 
         stopBtn.disabled = false;
-      } catch (e) {
-        alert('Start error: ' + e.message);
-        startBtn.disabled = false;
+      } catch (err) {
+        alert('Failed to start session: ' + err.message);
+        console.error('Start session error:', err);
       }
     }
 
-    async function stopSession() {
-      stopBtn.disabled = true;
+    stopBtn.addEventListener('click', async () => {
+      if (!sessionId) return;
       try {
-        const res = await fetch(WORKER + '/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+        const res = await fetch(WORKER_URL + '/stop', {
+          method: 'DELETE',
+          mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
         const { success, error } = await res.json();
-        if (!success) throw new Error(error);
-        iframe.remove();
-        iframe = null;
-        startBtn.disabled = false;
-        sessionId = null;
-      } catch (e) {
-        alert('Stop error: ' + e.message);
-        stopBtn.disabled = false;
+        if (success) {
+          location.reload();
+        } else {
+          alert('Stop error: ' + error);
+        }
+      } catch (err) {
+        console.error('Stop session error:', err);
       }
-    }
+    });
 
-    startBtn.addEventListener('click',  startSession);
-    stopBtn.addEventListener('click',   stopSession);
+    start();
   </script>
 </body>
 </html>
