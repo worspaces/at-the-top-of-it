@@ -4,8 +4,16 @@
   <meta charset="UTF-8" />
   <title>Chromium</title>
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-    #hyperbeam-container { width: 100vw; height: 100vh; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    #hyperbeam-container {
+      width: 100vw;
+      height: 100vh;
+    }
     #stop-btn {
       position: fixed;
       top: 16px;
@@ -30,18 +38,22 @@
   </div>
 
   <script type="module">
-    // Your frontend URL, which points to the worker URL
-    const WORKER_URL = 'https://craz.top/vm/';
-
+    const WORKER_URL = 'https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev';
     const container = document.getElementById('hyperbeam-container');
     const stopBtn = document.getElementById('stop-btn');
     let sessionId = null;
 
     async function start() {
       try {
-        // POST to /vm/ to create a session
-        const res = await fetch(WORKER_URL, { method: 'POST', mode: 'cors' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const res = await fetch(`${WORKER_URL}/`, {
+          method: 'POST',
+          mode: 'cors'
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
         const { embed_url, session_id } = await res.json();
         sessionId = session_id;
 
@@ -54,21 +66,19 @@
 
         stopBtn.disabled = false;
       } catch (err) {
-        alert('Failed to start session: ' + err.message);
         console.error('Start session error:', err);
+        alert('Failed to start session: ' + err.message);
       }
     }
 
     stopBtn.addEventListener('click', async () => {
       if (!sessionId) return;
       try {
-        // DELETE to /stop/ to end the session
-        const res = await fetch(WORKER_URL + 'stop/', {
+        const res = await fetch(`${WORKER_URL}/stop`, {
           method: 'DELETE',
-          mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId }),
+          mode: 'cors'
         });
+
         const { success, error } = await res.json();
         if (success) {
           location.reload();
@@ -77,6 +87,7 @@
         }
       } catch (err) {
         console.error('Stop session error:', err);
+        alert('Stop session error: ' + err.message);
       }
     });
 
