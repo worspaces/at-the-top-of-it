@@ -2,21 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Hyperbeam VM</title>
+  <title>Chromium</title>
   <style>
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-    #hyperbeam-container { width: 100vw; height: 100vh; position: relative; }
-    #stop-btn {
-      position: absolute; top: 16px; left: 16px; z-index: 1000;
-      padding: 8px 12px; background: rgba(217,83,79,0.9);
-      color: #fff; border: none; border-radius: 4px; cursor: pointer;
-      font-size: 14px;
-    }
-    /* Hide button in fullscreen */
-    #hyperbeam-container:-webkit-full-screen #stop-btn,
-    #hyperbeam-container:fullscreen           #stop-btn {
-      display: none;
-    }
+    #hyperbeam-container { width: 100vw; height: 100vh; }
+    #stop-btn { position: fixed; top: 16px; left: 16px; z-index:1000; padding:8px 12px; background: rgba(217,83,79,0.9); color:#fff; border:none; border-radius:4px; cursor:pointer; }
+    #hyperbeam-container:-webkit-full-screen #stop-btn, #hyperbeam-container:fullscreen #stop-btn { display:none; }
   </style>
 </head>
 <body>
@@ -27,54 +18,43 @@
   <script type="module">
     const WORKER_URL = 'https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev';
     const container = document.getElementById('hyperbeam-container');
-    const stopBtn   = document.getElementById('stop-btn');
-    let sessionId   = null, iframe = null;
+    const stopBtn = document.getElementById('stop-btn');
+    let sessionId = null;
 
-    async function startSession() {
+    async function start() {
       try {
-        const res = await fetch(WORKER_URL + '/', { method: 'POST', mode: 'cors' });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        const res = await fetch(WORKER_URL + '/vm', { method: 'POST', mode: 'cors' });
         const { embed_url, session_id } = await res.json();
         sessionId = session_id;
-
-        iframe = document.createElement('iframe');
-        iframe.src    = embed_url;
-        iframe.style.width  = '100%';
+        const iframe = document.createElement('iframe');
+        iframe.src = embed_url;
+        iframe.style.width = '100%';
         iframe.style.height = '100%';
         iframe.allow = 'camera; microphone; fullscreen; autoplay';
         container.appendChild(iframe);
-
         stopBtn.disabled = false;
       } catch (err) {
         console.error('Start session error:', err);
-        alert('Failed to start session:\n' + err.message);
+        alert('Failed to start session: ' + err.message);
       }
     }
 
     stopBtn.addEventListener('click', async () => {
-      if (!sessionId) return alert('No active session.');
+      if (!sessionId) return;
       try {
-        const res = await fetch(WORKER_URL + '/stop', {
-          method: 'DELETE', mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId })
-        });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        const res = await fetch(WORKER_URL + '/vm/stop', { method: 'DELETE', mode: 'cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) });
         const { success, error } = await res.json();
-        if (!success) throw new Error(error || 'Unknown error');
-
-        iframe.remove(); iframe = null;
-        stopBtn.disabled = true;
-        sessionId = null;
-        alert('Session stopped.');
+        if (success) {
+          location.reload();
+        } else {
+          alert('Stop error: ' + error);
+        }
       } catch (err) {
         console.error('Stop session error:', err);
-        alert('Failed to stop session:\n' + err.message);
       }
     });
 
-    // kick off
-    startSession();
+    start();
   </script>
 </body>
 </html>
