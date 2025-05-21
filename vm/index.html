@@ -2,78 +2,84 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Hyperbeam Session</title>
+  <title>Hyperbeam Embed with Stop Button</title>
   <style>
-    html, body {
+    body, html {
       margin: 0;
-      padding: 0;
       height: 100%;
-      background: black;
       overflow: hidden;
     }
     #hyperbeam-container {
-      width: 100vw;
+      width: 100%;
       height: 100vh;
     }
     #stop-btn {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      padding: 8px 14px;
-      font-size: 14px;
-      background: #e33;
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      padding: 10px 15px;
+      background-color: #d9534f;
       color: white;
       border: none;
-      border-radius: 6px;
-      z-index: 1000;
+      border-radius: 4px;
+      font-weight: bold;
       cursor: pointer;
+      user-select: none;
     }
   </style>
 </head>
 <body>
-  <button id="stop-btn" disabled>Stop Session</button>
+  <button id="stop-btn">Stop Session</button>
   <div id="hyperbeam-container"></div>
 
   <script type="module">
-    import Hyperbeam from "https://cdn.jsdelivr.net/npm/@hyperbeam/web@0.0.37/dist/index.js";
+    import Hyperbeam from "https://cdn.jsdelivr.net/npm/@hyperbeam/web@latest/dist/index.js";
 
-    const WORKER_URL = "https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev/";
     let sessionId = null;
-    let hbClient = null;
 
-    async function startSession() {
-      const res = await fetch(WORKER_URL, { method: "POST" });
-      const data = await res.json();
-      sessionId = data.session_id;
-      const container = document.getElementById("hyperbeam-container");
-      hbClient = await Hyperbeam(container, data.embed_url);
-      document.getElementById("stop-btn").disabled = false;
-    }
+    async function start() {
+      try {
+        const res = await fetch("https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev/", {
+          method: "POST"
+        });
+        const data = await res.json();
+        sessionId = data.id;
 
-    async function stopSession() {
-      if (!sessionId) return;
-
-      const res = await fetch(WORKER_URL, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId })
-      });
-
-      const result = await res.json();
-      if (result.success) {
-        hbClient?.disconnect?.();
-        document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:20%'>Session stopped.</h1>";
-      } else {
-        alert("Failed to stop session: " + result.error);
+        await Hyperbeam(document.getElementById("hyperbeam-container"), data.embed_url);
+      } catch (e) {
+        alert("Failed to start session: " + e.message);
       }
     }
 
-    document.getElementById("stop-btn").addEventListener("click", stopSession);
+    document.getElementById("stop-btn").addEventListener("click", async () => {
+      if (!sessionId) {
+        alert("No active session to stop.");
+        return;
+      }
 
-    startSession().catch(err => {
-      console.error(err);
-      document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:20%'>Failed to start session</h1>";
+      try {
+        const res = await fetch("https://YOUR-WORKER-URL.workers.dev/stop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: sessionId })
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+          alert("Session stopped.");
+          sessionId = null;
+          location.reload(); // Optional: reload page to start fresh or show stopped state
+        } else {
+          alert("Failed to stop session: " + (result.error || "Unknown error"));
+        }
+      } catch (e) {
+        alert("Error stopping session: " + e.message);
+      }
     });
+
+    start();
   </script>
 </body>
 </html>
