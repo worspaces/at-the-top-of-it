@@ -1,113 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Chromium</title>
+  <meta charset="UTF-8" />
+  <title>Hyperbeam VM Embed</title>
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
+      margin: 0; padding: 0; height: 100%;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
     }
     #hyperbeam-container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: #111;
-    }
-    #hyperbeam-container iframe {
+      flex: 1;
       width: 100%;
-      height: 100%;
       border: none;
     }
-    #stop-btn {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      z-index: 1000;
-      padding: 8px 12px;
-      background-color: rgba(217, 83, 79, 0.9);
-      color: #fff;
+    #controls {
+      background: #222;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      background: #ff3b3b;
       border: none;
       border-radius: 4px;
-      font-size: 14px;
+      color: white;
       cursor: pointer;
-      user-select: none;
-      transition: background-color .2s;
     }
-    #stop-btn:hover {
-      background-color: rgba(217, 83, 79, 1);
-    }
-
-    /* Hide the stop button when the container is fullscreen */
-    #hyperbeam-container:-webkit-full-screen #stop-btn,
-    #hyperbeam-container:-moz-full-screen #stop-btn,
-    #hyperbeam-container:-ms-fullscreen #stop-btn,
-    #hyperbeam-container:fullscreen #stop-btn {
-      display: none;
+    button:hover {
+      background: #ff1a1a;
     }
   </style>
 </head>
 <body>
-  <div id="hyperbeam-container">
-    <button id="stop-btn">Stop Session</button>
+  <div id="controls">
+    <button id="stop-btn" disabled>Stop Session</button>
   </div>
+  <iframe id="hyperbeam-container" allow="camera; microphone; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 
-  <script>
-    const WORKER_URL = "https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev/"; // ← your Worker URL
-    let sessionId = null;
+  <script type="module">
+    import Hyperbeam from "https://cdn.jsdelivr.net/npm/@hyperbeam/web@latest/dist/index.js";
 
-    async function start() {
+    let vmInstance = null;
+    const iframe = document.getElementById("hyperbeam-container");
+    const stopBtn = document.getElementById("stop-btn");
+
+    async function startVM() {
       try {
-        const res = await fetch(WORKER_URL, { method: "POST", mode: "cors" });
+        const res = await fetch("https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev/", { method: "POST" });
         const data = await res.json();
 
-        if (!data.embed_url || !data.session_id) {
-          throw new Error("Invalid response from worker");
+        if (!data.embed_url) {
+          throw new Error("No embed_url in response");
         }
 
-        sessionId = data.session_id;
-
-        // Embed via iframe
-        const container = document.getElementById("hyperbeam-container");
-        container.insertAdjacentHTML("beforeend",
-          `<iframe src="${data.embed_url}" 
-                   allow="camera; microphone; fullscreen; autoplay">
-           </iframe>`
-        );
+        vmInstance = await Hyperbeam(iframe, data.embed_url);
+        stopBtn.disabled = false;
       } catch (err) {
-        alert("Failed to start session: " + err.message);
+        console.error("Failed to start VM:", err);
+        alert("Failed to start VM: " + err.message);
       }
     }
 
-    async function stop() {
-      if (!sessionId) {
-        alert("No active session to stop.");
-        return;
-      }
-      try {
-        const res = await fetch(WORKER_URL + "/stop", {
-          method: "POST",
-          mode: "cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: sessionId })
-        });
-        const result = await res.json();
-        if (result.success) {
+    stopBtn.addEventListener("click", async () => {
+      if (vmInstance) {
+        try {
+          await vmInstance.stop(); // This calls your worker /stop endpoint
+          stopBtn.disabled = true;
+          iframe.src = "about:blank"; // Clear iframe
+          vmInstance = null;
           alert("Session stopped.");
-          location.reload();
-        } else {
-          throw new Error(result.error || "Unknown error");
+        } catch (err) {
+          console.error("Failed to stop VM:", err);
+          alert("Failed to stop VM: " + err.message);
         }
-      } catch (err) {
-        alert("Error stopping session: " + err.message);
       }
-    }
+    });
 
-    document.getElementById("stop-btn").addEventListener("click", stop);
-    start();
+    startVM();
   </script>
 </body>
 </html>
