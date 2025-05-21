@@ -1,94 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8" />
-  <title>Chromium VM</title>
+  <title>Hyperbeam Embed</title>
   <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%; overflow: hidden;
-      background: black;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
-    #hyperbeam-container {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-    }
-    #stop-btn {
-      position: fixed;
-      top: 16px;
-      left: 16px;
-      z-index: 1000;
-      padding: 8px 12px;
-      background: rgba(217, 83, 79, 0.9);
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    #hyperbeam-container:-webkit-full-screen #stop-btn,
-    #hyperbeam-container:fullscreen #stop-btn {
-      display: none;
-    }
+    body, html { margin: 0; height: 100%; }
+    #hyperbeam-container { width: 100%; height: 100vh; }
   </style>
 </head>
 <body>
-  <div id="hyperbeam-container">
-    <button id="stop-btn" disabled>Stop Session</button>
-  </div>
+  <div id="hyperbeam-container"></div>
 
   <script type="module">
-    const WORKER_URL = 'https://craz.top/vm'; // Important: no trailing slash here
-    const container = document.getElementById('hyperbeam-container');
-    const stopBtn = document.getElementById('stop-btn');
-    let sessionId = null;
+    import Hyperbeam from "https://unpkg.com/@hyperbeam/web@latest/dist/index.js";
+    // — or use jsDelivr: 
+    // import Hyperbeam from "https://cdn.jsdelivr.net/npm/@hyperbeam/web@latest/dist/index.js";
 
     async function start() {
-      try {
-        const res = await fetch(WORKER_URL + '/', {
-          method: 'POST',
-          mode: 'cors',
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { embed_url, session_id } = await res.json();
-        sessionId = session_id;
-
-        const iframe = document.createElement('iframe');
-        iframe.src = embed_url;
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
-        iframe.allow = 'camera; microphone; fullscreen; autoplay';
-        iframe.setAttribute('frameborder', '0');
-        container.appendChild(iframe);
-
-        stopBtn.disabled = false;
-      } catch (err) {
-        alert('Failed to start session: ' + err.message);
-        console.error('Start session error:', err);
-      }
+      const res = await fetch("https://hyperbeam.stilla-rrms-wlwv-k12-or-us.workers.dev/", {
+        method: "POST"
+      });
+      const { embed_url } = await res.json();
+      await Hyperbeam(document.getElementById("hyperbeam-container"), embed_url);
     }
-
-    stopBtn.addEventListener('click', async () => {
-      if (!sessionId) return;
-      try {
-        const res = await fetch(WORKER_URL + '/stop', {
-          method: 'DELETE',
-          mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId }),
-        });
-        const { success, error } = await res.json();
-        if (success) {
-          location.reload();
-        } else {
-          alert('Stop error: ' + error);
-        }
-      } catch (err) {
-        console.error('Stop session error:', err);
-      }
-    });
 
     start();
   </script>
