@@ -28,12 +28,12 @@
 
     async function start() {
       try {
-        const res = await fetch(WORKER_URL + '/vm', { method: 'POST', mode: 'cors' });
-        const text = await res.text();
-        console.log('Raw response:', text);
-        const data = JSON.parse(text);
+        const res = await fetch(WORKER_URL + '/', { method: 'POST', mode: 'cors' });  // <== HERE, use '/'
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
 
+        const data = await res.json();
         sessionId = data.session_id;
+
         const iframe = document.createElement('iframe');
         iframe.src = data.embed_url;
         iframe.style.width = '100%';
@@ -42,8 +42,8 @@
         container.appendChild(iframe);
         stopBtn.disabled = false;
       } catch (err) {
-        console.error('Start session error:', err);
         alert('Failed to start session: ' + err.message);
+        console.error(err);
       }
     }
 
@@ -56,14 +56,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: sessionId })
         });
-        const text = await res.text();
-        console.log('Stop raw response:', text);
-        const { success, error } = JSON.parse(text);
+        const data = await res.json();
 
-        if (success) {
+        if (data.success) {
           location.reload();
         } else {
-          alert('Stop error: ' + error);
+          alert('Stop error: ' + data.error);
         }
       } catch (err) {
         console.error('Stop session error:', err);
