@@ -14,6 +14,23 @@ body {
   color: #ccc;
 }
 
+::-webkit-scrollbar {
+  width: 1.2vw;
+}
+
+::-webkit-scrollbar-track {
+  background: black;
+}
+
+::-webkit-scrollbar-thumb {
+  background: cyan;
+  border-radius: 0.6vw;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00e6e6;
+}
+
 .surprise-text, .motw-text, .smaller-text, .tiny-text, .about-text,
 .copyright-text, .about-heading, .other-links-heading,
 .other-link, .other-link a, .link-text a {
